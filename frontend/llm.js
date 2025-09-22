@@ -20,10 +20,13 @@ const transformerUrls = [];
 if (transformersConfig.vendorPath) {
   transformerUrls.push(transformersConfig.vendorPath);
 }
-const defaultTransformerCdn = transformersConfig.cdnUrls || [
-  'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0',
-  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0'
+const builtInTransformerCdn = [
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/+esm',
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0/+esm',
+  'https://unpkg.com/@xenova/transformers@3.0.0/dist/transformers.min.js?module',
+  'https://unpkg.com/@xenova/transformers@2.14.0/dist/transformers.min.js?module'
 ];
+const defaultTransformerCdn = transformersConfig.cdnUrls || builtInTransformerCdn;
 if (allowTransformersCdn) {
   transformerUrls.push(...defaultTransformerCdn);
 }
