@@ -42,38 +42,9 @@ body{
 
 /* Subheader chat */
 .subheader{
-  display:grid; gap:22px;
+  display:flex; justify-content:center;
   padding: 26px 24px 30px; border-bottom:1px solid var(--border);
   background: radial-gradient(900px 360px at top left, rgba(79,70,229,.18), transparent 70%), var(--layer);
-}
-.subheader-copy{
-  display:flex; flex-direction:column; gap:16px;
-  max-width:560px;
-}
-.subheader-copy h1{
-  margin:0;
-  font-size:28px;
-  line-height:1.2;
-}
-.subheader-copy p{
-  margin:0;
-  color: rgba(229,231,235,.82);
-  line-height:1.6;
-}
-.eyebrow{
-  font-size:11px;
-  letter-spacing:.18em;
-  text-transform:uppercase;
-  color: var(--accent);
-}
-.hero-note{
-  padding: 14px 16px;
-  border:1px solid rgba(34,211,238,.28);
-  background: rgba(15,26,51,.6);
-  border-radius:12px;
-  font-size:13px;
-  color: rgba(226,232,240,.85);
-  max-width:480px;
 }
 .chat-card{
   display:flex; flex-direction:column; gap:16px;
@@ -82,6 +53,8 @@ body{
   background: linear-gradient(160deg, rgba(15,22,45,.92) 0%, rgba(13,18,38,.86) 60%, rgba(15,20,41,.92) 100%);
   border:1px solid rgba(79,70,229,.32);
   box-shadow: 0 24px 60px rgba(15,20,40,.45);
+  width:100%;
+  max-width: 640px;
 }
 .assistant-banner{
   display:flex; align-items:center; gap:14px;
@@ -149,9 +122,9 @@ body{
 }
 .chip:hover{ border-color: var(--accent); }
 
-@media (min-width: 900px){
-  .subheader{ grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items:center; }
-  .subheader-copy h1{ font-size:34px; }
+@media (max-width: 600px){
+  .subheader{ padding: 20px 16px 26px; }
+  .chat-card{ padding: 18px; }
 }
 
 /* Main layout */
