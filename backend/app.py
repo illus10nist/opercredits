@@ -5,6 +5,7 @@ import json
 import time
 import shutil
 import hashlib
+import mimetypes
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -22,6 +23,11 @@ UPLOAD_DIR = BASE_DIR / "data" / "uploads"
 INDEX_DIR = BASE_DIR / "data" / "index"
 FRONTEND_DIR = BASE_DIR / "frontend"
 CACHE_DIR = BASE_DIR / "data" / "cache"
+
+# Ensure modern static assets (ES modules, wasm) are served with the right MIME type
+mimetypes.add_type("application/javascript", ".mjs")
+mimetypes.add_type("application/javascript", ".js")
+mimetypes.add_type("application/wasm", ".wasm")
 
 for d in [UPLOAD_DIR, INDEX_DIR, CACHE_DIR]:
     d.mkdir(parents=True, exist_ok=True)

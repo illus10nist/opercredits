@@ -12,20 +12,47 @@ function mailtoLink(subject, body, to){
 async function copyText(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); }catch{} }
 
 // Optional (PDF.js) — app still works if these fail (image fallback)
-const PDF_URLS = [
-  '/vendor/pdf.mjs',
+const globalConfig = window.DocChaseConfig || {};
+const allowPdfCdn = (() => {
+  if (globalConfig.pdf && typeof globalConfig.pdf.enableCdn === 'boolean') {
+    return globalConfig.pdf.enableCdn;
+  }
+  try {
+    return localStorage.getItem('docchat:pdfCdn') === '1';
+  } catch (e) {
+    return false;
+  }
+})();
+
+const pdfUrls = [];
+if (globalConfig.pdf?.vendorPath) {
+  pdfUrls.push(globalConfig.pdf.vendorPath);
+}
+const defaultPdfCdn = globalConfig.pdf?.cdnUrls || [
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.mjs',
   'https://unpkg.com/pdfjs-dist@4.6.82/build/pdf.mjs'
 ];
+if (allowPdfCdn) {
+  pdfUrls.push(...defaultPdfCdn);
+}
+
+const PDF_URLS = pdfUrls;
+const PDF_JS_ENABLED = PDF_URLS.length > 0;
+const LOCAL_PDF_WORKER = globalConfig.pdf?.workerPath || '/vendor/pdf.worker.min.mjs';
+
+if (!PDF_JS_ENABLED) {
+  console.info('[DocChat] PDF.js disabled; using rendered image fallback.');
+}
 
 async function ensurePdfJsReady(){
+  if (!PDF_JS_ENABLED) return null;
   if (window.pdfjsLib) return window.pdfjsLib;
   for (const url of PDF_URLS){
     try {
       const lib = await import(url);
       if (lib.GlobalWorkerOptions){
         const worker = url.startsWith('/')
-          ? '/vendor/pdf.worker.min.mjs'
+          ? LOCAL_PDF_WORKER
           : url.replace('pdf.mjs', 'pdf.worker.min.mjs');
         lib.GlobalWorkerOptions.workerSrc = worker;
       }
@@ -178,6 +205,7 @@ async function renderPDFjs(url){
 async function renderImages(docId){
   const container = qs('#pdfContainer');
   container.innerHTML = '';
+  state.currentPDF = null;
   const man = await fetch(`/api/doc/${docId}/manifest`).then(r=>r.json());
   const pages = man.pages || [];
   const scale = 1.25;
