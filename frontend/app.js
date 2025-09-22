@@ -425,11 +425,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ------- LLM Doc Re-request modal -------
   const modal = qs('#reuploadModal');
+  const closeModal = () => {
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+  };
   qs('#requestBtn').addEventListener('click', () => {
     modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
     qs('#llmStatus').textContent = `LLM: ${window.DocChaseLLM?.getStatus?.() || 'idle'}`;
+    setTimeout(() => qs('#r_name')?.focus(), 50);
   });
-  qs('#closeModal').addEventListener('click', () => modal.classList.add('hidden'));
+  qs('#closeModal').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if(e.target === modal) closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && !modal.classList.contains('hidden')){
+      closeModal();
+    }
+  });
 
   qs('#draftBtn').addEventListener('click', async () => {
     const params = {
