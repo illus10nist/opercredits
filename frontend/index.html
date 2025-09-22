@@ -87,7 +87,14 @@
                 <span class="hide-sm">Next</span><span class="icon">▶</span>
               </button>
               <button class="btn ghost" id="clearResults" title="Clear results">Clear</button>
-              <button class="btn primary" id="requestBtn" title="Request re-upload">Request re-upload</button>
+              <button class="btn primary" id="requestBtn" title="Request re-upload">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                  <path d="m5.5 7 6.5 4.5L18.5 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                  <path d="M8 15h8m-6 3h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <span>Request re-upload</span>
+              </button>
             </div>
           </div>
           <div id="pdfContainer" class="pdf-container">
@@ -141,67 +148,110 @@
     <!-- Re-upload Modal -->
     <div class="modal hidden" id="reuploadModal" aria-hidden="true">
       <div class="modal-card">
+        <button class="modal-close" id="closeModal" aria-label="Close re-upload request">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 8 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </button>
         <div class="modal-head">
-          <div class="title">Request re-upload</div>
+          <div class="modal-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <rect x="6" y="10" width="36" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="m10 14 14 11 14-11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M16 32h16m-12 6h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="modal-titles">
+            <div class="title">Request re-upload</div>
+            <div class="subtitle">We’ve pre-filled the borrower details. Make any tweaks, then have the AI draft your email.</div>
+          </div>
           <div class="status" id="llmStatus">LLM: loading…</div>
         </div>
 
-        <div class="form">
-          <div class="row">
-            <label>Borrower name</label>
-            <input id="r_name" placeholder="Jane Doe" />
-          </div>
-          <div class="row">
-            <label>Borrower email</label>
-            <input id="r_email" placeholder="jane@example.com" />
-          </div>
-          <div class="row">
-            <label>Missing items (one per line)</label>
-            <textarea id="r_missing" rows="4" placeholder="May payslip&#10;Bank statement (June, all pages)"></textarea>
-          </div>
-          <div class="row">
-            <label>Issues / corrections (optional)</label>
-            <textarea id="r_issues" rows="3" placeholder="ID photo is blurry&#10;Address differs from application"></textarea>
-          </div>
-          <div class="row two">
-            <div>
-              <label>Due date (optional)</label>
-              <input id="r_due" placeholder="YYYY-MM-DD" />
+        <div class="modal-body">
+          <section class="panel form-panel">
+            <div class="panel-head">
+              <h3>Borrower details</h3>
+              <span class="pill">Prefilled from context</span>
             </div>
-            <div>
-              <label>Language</label>
-              <select id="r_lang">
-                <option value="English" selected>English</option>
-                <option>French</option><option>Dutch</option><option>German</option>
-              </select>
+            <div class="field-grid">
+              <div class="field">
+                <label for="r_name">Borrower name</label>
+                <input id="r_name" placeholder="Jane Doe" />
+              </div>
+              <div class="field">
+                <label for="r_email">Borrower email</label>
+                <input id="r_email" placeholder="jane@example.com" />
+              </div>
             </div>
-            <div>
-              <label>Tone</label>
-              <select id="r_tone">
-                <option value="friendly" selected>friendly</option>
-                <option>formal</option><option>assertive</option>
-              </select>
+            <div class="field">
+              <label for="r_missing">Missing items</label>
+              <textarea id="r_missing" rows="5" placeholder="May payslip&#10;Bank statement (June, all pages)"></textarea>
+              <div class="field-hint">One item per line. We include what the borrower still owes.</div>
             </div>
-          </div>
+            <div class="field">
+              <label for="r_issues">Issues / corrections</label>
+              <textarea id="r_issues" rows="4" placeholder="ID photo is blurry&#10;Address differs from application"></textarea>
+            </div>
+            <div class="field-grid trio">
+              <div class="field">
+                <label for="r_due">Due date</label>
+                <input id="r_due" placeholder="YYYY-MM-DD" />
+              </div>
+              <div class="field">
+                <label for="r_lang">Language</label>
+                <select id="r_lang">
+                  <option value="English" selected>English</option>
+                  <option>French</option><option>Dutch</option><option>German</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="r_tone">Tone</label>
+                <select id="r_tone">
+                  <option value="friendly" selected>friendly</option>
+                  <option>formal</option><option>assertive</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel preview-panel">
+            <div class="preview-head">
+              <div>
+                <h3>Email draft</h3>
+                <p>Generate with the LLM or fine-tune manually before sending.</p>
+              </div>
+              <button class="btn" id="draftBtn">Generate with AI</button>
+            </div>
+            <div class="field">
+              <div class="field-top">
+                <label for="out_subject">Subject</label>
+                <button class="icon-button" id="copySub" type="button" aria-label="Copy subject">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9V5.5A1.5 1.5 0 0 1 10.5 4h8A1.5 1.5 0 0 1 20 5.5v8A1.5 1.5 0 0 1 18.5 15H15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /><rect x="4" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" /></svg>
+                </button>
+              </div>
+              <input id="out_subject" />
+            </div>
+            <div class="field">
+              <div class="field-top">
+                <label for="out_body">Body</label>
+                <button class="icon-button" id="copyBody" type="button" aria-label="Copy body">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h10.5A1.5 1.5 0 0 1 20 6.5V17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /><rect x="4" y="7" width="12" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" /></svg>
+                </button>
+              </div>
+              <textarea id="out_body" rows="10"></textarea>
+            </div>
+          </section>
         </div>
 
-        <div class="actions">
-          <button class="btn" id="draftBtn">Generate draft</button>
-          <button class="btn ghost" id="copySub">Copy subject</button>
-          <button class="btn ghost" id="copyBody">Copy body</button>
-          <button class="btn ghost" id="openMail">Open email</button>
-          <div class="spacer"></div>
-          <button class="btn ghost" id="closeModal">Close</button>
-        </div>
-
-        <div class="outputs">
-          <div class="row">
-            <label>Subject</label>
-            <input id="out_subject" readonly />
+        <div class="send-bar">
+          <div class="send-meta">
+            <div class="send-icon" aria-hidden="true">✉️</div>
+            <div>
+              <div class="send-title">Ready to reach out?</div>
+              <div class="send-text">Review the draft, then send it with your default mail app.</div>
+            </div>
           </div>
-          <div class="row">
-            <label>Body</label>
-            <textarea id="out_body" rows="8" readonly></textarea>
+          <div class="send-actions">
+            <button class="btn primary" type="button" id="openMail">Send email</button>
           </div>
         </div>
       </div>
