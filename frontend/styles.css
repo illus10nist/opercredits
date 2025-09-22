@@ -188,7 +188,16 @@ body{
 }
 .modal-head{ display:flex; align-items:center; gap:12px; margin-bottom:8px; }
 .modal-head .title{ font-weight:700; }
-.modal-head .status{ margin-left:auto; color:var(--muted); font-size:12px; }
+.modal-head .status{ color:var(--muted); font-size:12px; }
+.modal-head .status-group{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.modal-head .status-group .status{
+  margin-left:0;
+}
 .form .row, .outputs .row{ display:flex; flex-direction:column; gap:6px; margin:10px 0; }
 .form .row.two{ display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap:12px; }
 .form input, .form textarea, .form select, .outputs input, .outputs textarea{

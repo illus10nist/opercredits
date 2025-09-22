@@ -11,21 +11,55 @@ function mailtoLink(subject, body, to){
 }
 async function copyText(s){ try{ await navigator.clipboard.writeText(s); toast('Copied'); }catch{} }
 
+function getStoredFlag(key){
+  try{
+    const val = localStorage.getItem(key);
+    if(val === '1') return true;
+    if(val === '0') return false;
+  }catch(e){}
+  return null;
+}
+
 // Optional (PDF.js) — app still works if these fail (image fallback)
-const PDF_URLS = [
-  '/vendor/pdf.mjs',
+const globalConfig = window.DocChaseConfig || {};
+const allowPdfCdn = (() => {
+  const stored = getStoredFlag('docchat:pdfCdn');
+  if(stored !== null) return stored;
+  if (globalConfig.pdf && typeof globalConfig.pdf.enableCdn === 'boolean') {
+    return globalConfig.pdf.enableCdn;
+  }
+  return false;
+})();
+
+const pdfUrls = [];
+if (globalConfig.pdf?.vendorPath) {
+  pdfUrls.push(globalConfig.pdf.vendorPath);
+}
+const defaultPdfCdn = globalConfig.pdf?.cdnUrls || [
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.mjs',
   'https://unpkg.com/pdfjs-dist@4.6.82/build/pdf.mjs'
 ];
+if (allowPdfCdn) {
+  pdfUrls.push(...defaultPdfCdn);
+}
+
+const PDF_URLS = pdfUrls;
+const PDF_JS_ENABLED = PDF_URLS.length > 0;
+const LOCAL_PDF_WORKER = globalConfig.pdf?.workerPath || '/vendor/pdf.worker.min.mjs';
+
+if (!PDF_JS_ENABLED) {
+  console.info('[DocChat] PDF.js disabled; using rendered image fallback.');
+}
 
 async function ensurePdfJsReady(){
+  if (!PDF_JS_ENABLED) return null;
   if (window.pdfjsLib) return window.pdfjsLib;
   for (const url of PDF_URLS){
     try {
       const lib = await import(url);
       if (lib.GlobalWorkerOptions){
         const worker = url.startsWith('/')
-          ? '/vendor/pdf.worker.min.mjs'
+          ? LOCAL_PDF_WORKER
           : url.replace('pdf.mjs', 'pdf.worker.min.mjs');
         lib.GlobalWorkerOptions.workerSrc = worker;
       }
@@ -178,6 +212,7 @@ async function renderPDFjs(url){
 async function renderImages(docId){
   const container = qs('#pdfContainer');
   container.innerHTML = '';
+  state.currentPDF = null;
   const man = await fetch(`/api/doc/${docId}/manifest`).then(r=>r.json());
   const pages = man.pages || [];
   const scale = 1.25;
@@ -330,6 +365,56 @@ function clearResults(){
 document.addEventListener('DOMContentLoaded', () => {
   fetchDocs();
 
+  const llmStatusEl = qs('#llmStatus');
+  const enableLlmBtn = qs('#enableLlmBtn');
+  let enablingLlm = false;
+
+  function updateLlmStatus(){
+    const llm = window.DocChaseLLM;
+    const st = llm?.getStatus?.() || 'idle';
+    const stStr = String(st);
+    const normalized = stStr.toLowerCase();
+    if(llmStatusEl){ llmStatusEl.textContent = `LLM: ${stStr}`; }
+    if(enableLlmBtn){
+      const canEnable = !!llm?.canEnableCdn?.();
+      const shouldShow = canEnable && normalized.startsWith('template');
+      enableLlmBtn.hidden = !shouldShow;
+      if(!shouldShow){ enablingLlm = false; }
+      if(!enablingLlm){
+        enableLlmBtn.disabled = false;
+        const label = stStr.startsWith('template (load failed)') ? 'Retry CDN LLM' : 'Enable CDN LLM';
+        enableLlmBtn.textContent = label;
+      }
+    }
+  }
+
+  if(enableLlmBtn){
+    enableLlmBtn.addEventListener('click', async () => {
+      if(!window.DocChaseLLM?.enableCdn) return;
+      enablingLlm = true;
+      enableLlmBtn.disabled = true;
+      enableLlmBtn.textContent = 'Enabling…';
+      try{
+        await window.DocChaseLLM.enableCdn();
+        const st = window.DocChaseLLM?.getStatus?.();
+        if(st === 'ready'){
+          toast('LLM ready (Transformers.js)');
+        } else {
+          toast('LLM fallback active');
+        }
+      }catch(err){
+        console.error('Enable CDN LLM failed', err);
+        toast('Could not enable LLM');
+      }finally{
+        enablingLlm = false;
+        updateLlmStatus();
+      }
+    });
+  }
+
+  window.addEventListener('docchat:llm-status', updateLlmStatus);
+  updateLlmStatus();
+
   // Upload
   const fileInput = qs('#fileInput');
   const uploadBtn = qs('#uploadBtn');
@@ -382,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modal = qs('#reuploadModal');
   qs('#requestBtn').addEventListener('click', () => {
     modal.classList.remove('hidden');
-    qs('#llmStatus').textContent = `LLM: ${window.DocChaseLLM?.getStatus?.() || 'idle'}`;
+    updateLlmStatus();
   });
   qs('#closeModal').addEventListener('click', () => modal.classList.add('hidden'));
 
@@ -396,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
       language: qs('#r_lang').value,
       tone: qs('#r_tone').value
     };
-    qs('#llmStatus').textContent = `LLM: ${window.DocChaseLLM?.getStatus?.() || 'idle'}`;
+    updateLlmStatus();
     const draft = await window.DocChaseLLM.generateDraft(params);
     qs('#out_subject').value = draft.subject || '';
     qs('#out_body').value = draft.body || '';

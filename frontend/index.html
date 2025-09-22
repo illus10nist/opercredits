@@ -125,34 +125,15 @@
     <!-- Hidden file input -->
     <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none" />
 
+    <!-- Front-end config: default to offline-friendly fallbacks (no CDN access required) -->
+    <script>
+      window.DocChaseConfig = window.DocChaseConfig || {};
+      window.DocChaseConfig.pdf = Object.assign({ enableCdn: false }, window.DocChaseConfig.pdf || {});
+      window.DocChaseConfig.transformers = Object.assign({ enableCdn: false }, window.DocChaseConfig.transformers || {});
+    </script>
+
     <!-- In-browser LLM (no external API) -->
     <script type="module" src="/llm.js?v=1"></script>
-
-    <!-- PDF.js loader (tries LOCAL vendor first, then two CDNs) -->
-    <script type="module">
-      async function loadPdfJs() {
-        const urls = [
-          '/vendor/pdf.mjs',
-          'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.mjs',
-          'https://unpkg.com/pdfjs-dist@4.6.82/build/pdf.mjs'
-        ];
-        for (const url of urls) {
-          try {
-            const lib = await import(url);
-            if (lib.GlobalWorkerOptions) {
-              const worker = url.startsWith('/')
-                ? '/vendor/pdf.worker.min.mjs'
-                : url.replace('pdf.mjs', 'pdf.worker.min.mjs');
-              lib.GlobalWorkerOptions.workerSrc = worker;
-            }
-            window.pdfjsLib = lib;
-            return;
-          } catch (e) { console.warn('PDF.js load failed from', url); }
-        }
-        console.warn('PDF.js unavailable; using image fallback.');
-      }
-      loadPdfJs();
-    </script>
 
     <!-- App -->
     <script src="/app.js?v=5"></script>
@@ -162,7 +143,10 @@
       <div class="modal-card">
         <div class="modal-head">
           <div class="title">Request re-upload</div>
-          <div class="status" id="llmStatus">LLM: loading…</div>
+          <div class="status-group">
+            <div class="status" id="llmStatus">LLM: loading…</div>
+            <button class="btn small ghost" id="enableLlmBtn" type="button" hidden>Enable CDN LLM</button>
+          </div>
         </div>
 
         <div class="form">

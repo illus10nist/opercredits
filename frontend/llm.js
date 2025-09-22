@@ -5,23 +5,95 @@ let generator = null;
 let status = 'idle';
 let ready = false;
 
-export async function init() {
-  if (ready || status === 'loading') return;
-  status = 'loading';
+const globalConfig = typeof window !== 'undefined' ? (window.DocChaseConfig || {}) : {};
+const transformersConfig = globalConfig.transformers || {};
+
+function readStoredFlag(key) {
   try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0');
-    const { pipeline } = mod;
-    generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-248M', {
-      progress_callback: (p) => {
-        if (p?.totalBytes) status = `loading ${Math.round((p.currentBytes / p.totalBytes) * 100)}%`;
-      },
-    });
-    ready = true;
-    status = 'ready';
-  } catch (e) {
-    console.warn('Transformers.js load/model init failed; using fallback template.', e);
-    status = 'fallback';
+    if (typeof localStorage === 'undefined') return null;
+    const val = localStorage.getItem(key);
+    if (val === '1') return true;
+    if (val === '0') return false;
+  } catch (e) {}
+  return null;
+}
+
+const storedTransformersPref = readStoredFlag('docchat:transformersCdn');
+const initialTransformersCdn =
+  storedTransformersPref !== null
+    ? storedTransformersPref
+    : (typeof transformersConfig.enableCdn === 'boolean' ? transformersConfig.enableCdn : false);
+
+let useTransformersCdn = initialTransformersCdn;
+
+const builtInTransformerCdn = [
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0/dist/transformers.min.js',
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0/dist/transformers.min.js',
+  'https://unpkg.com/@xenova/transformers@3.0.0/dist/transformers.min.js?module',
+  'https://unpkg.com/@xenova/transformers@2.14.0/dist/transformers.min.js?module'
+];
+
+const configuredTransformerCdn = Array.isArray(transformersConfig.cdnUrls) && transformersConfig.cdnUrls.length
+  ? transformersConfig.cdnUrls
+  : builtInTransformerCdn;
+
+const vendorTransformerPath = transformersConfig.vendorPath;
+
+function computeTransformerUrls() {
+  const urls = [];
+  if (vendorTransformerPath) urls.push(vendorTransformerPath);
+  if (useTransformersCdn) urls.push(...configuredTransformerCdn);
+  return urls;
+}
+
+function setStatus(next) {
+  status = next;
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('docchat:llm-status', { detail: next }));
+    } catch (e) {}
   }
+}
+
+if (!useTransformersCdn && !vendorTransformerPath) {
+  console.info('[DocChat] Transformers CDN disabled; using offline email template. Click "Enable CDN LLM" to opt in.');
+}
+
+export async function init(opts = {}) {
+  const force = opts.force === true;
+  if (!force && (ready || status === 'loading')) return;
+
+  const urls = computeTransformerUrls();
+  if (urls.length === 0) {
+    generator = null;
+    ready = true;
+    setStatus(useTransformersCdn ? 'template (no sources)' : 'template (CDN disabled)');
+    return;
+  }
+
+  ready = false;
+  setStatus('loading');
+  for (const url of urls) {
+    try {
+      const mod = await import(url);
+      const { pipeline } = mod;
+      generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-248M', {
+        progress_callback: (p) => {
+          if (p?.totalBytes) {
+            setStatus(`loading ${Math.round((p.currentBytes / p.totalBytes) * 100)}%`);
+          }
+        },
+      });
+      ready = true;
+      setStatus('ready');
+      return;
+    } catch (e) {
+      console.warn('Transformers.js load/model init failed from', url, e);
+    }
+  }
+  generator = null;
+  ready = true;
+  setStatus(useTransformersCdn ? 'template (load failed)' : 'template (CDN disabled)');
 }
 
 function buildPrompt({ borrower_name, missing_items, issues, due_date, language, tone }) {
@@ -77,7 +149,7 @@ export async function generateDraft(params) {
   params.issues = Array.isArray(params.issues) ? params.issues : [];
 
   if (!ready || !generator) { try { await init(); } catch {} }
-  if (!ready || !generator || status === 'fallback') return fallbackDraft(params);
+  if (!ready || !generator || status !== 'ready') return fallbackDraft(params);
 
   try {
     const out = await generator(buildPrompt(params), { max_new_tokens: 320, temperature: 0.3 });
@@ -92,7 +164,41 @@ export async function generateDraft(params) {
 export function getStatus() { return status; }
 export function isReady()   { return ready; }
 
+export function isCdnEnabled() { return useTransformersCdn; }
+export function canEnableCdn() {
+  if (configuredTransformerCdn.length === 0) return false;
+  if (!useTransformersCdn) return true;
+  return typeof status === 'string' && status.startsWith('template (load failed)');
+}
+
+export async function enableCdn() {
+  if (useTransformersCdn) {
+    if (!ready || !generator) {
+      await init({ force: true });
+    }
+    return;
+  }
+  useTransformersCdn = true;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('docchat:transformersCdn', '1');
+    }
+  } catch (e) {}
+  generator = null;
+  ready = false;
+  setStatus('idle');
+  await init({ force: true });
+}
+
 if (typeof window !== 'undefined') {
-  window.DocChaseLLM = { init, generateDraft, getStatus, isReady };
+  window.DocChaseLLM = {
+    init,
+    generateDraft,
+    getStatus,
+    isReady,
+    enableCdn,
+    isCdnEnabled,
+    canEnableCdn,
+  };
   init().catch(() => {});
 }
