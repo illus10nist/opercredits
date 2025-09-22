@@ -64,7 +64,18 @@ body{
 .btn.primary{ background: var(--primary); border-color: transparent; }
 .btn.primary:hover{ background: var(--primary-600); }
 .btn.ghost{ background: transparent; }
-.btn.small{ padding:6px 10px; font-size:12px; }
+.btn.small{
+  padding:6px 10px;
+  font-size:12px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.btn.small svg.icon{
+  width:16px;
+  height:16px;
+  flex-shrink:0;
+}
 
 .chips{ display:flex; flex-wrap:wrap; gap:8px; }
 .chip{
