@@ -5,23 +5,60 @@ let generator = null;
 let status = 'idle';
 let ready = false;
 
+const globalConfig = typeof window !== 'undefined' ? (window.DocChaseConfig || {}) : {};
+const transformersConfig = globalConfig.transformers || {};
+const allowTransformersCdn = (() => {
+  if (typeof transformersConfig.enableCdn === 'boolean') return transformersConfig.enableCdn;
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('docchat:transformersCdn') === '1';
+  } catch (e) {
+    return false;
+  }
+})();
+
+const transformerUrls = [];
+if (transformersConfig.vendorPath) {
+  transformerUrls.push(transformersConfig.vendorPath);
+}
+const defaultTransformerCdn = transformersConfig.cdnUrls || [
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0',
+  'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0'
+];
+if (allowTransformersCdn) {
+  transformerUrls.push(...defaultTransformerCdn);
+}
+
+if (transformerUrls.length === 0) {
+  console.info('[DocChat] Transformers CDN disabled; using offline email template.');
+}
+
 export async function init() {
   if (ready || status === 'loading') return;
-  status = 'loading';
-  try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@3.0.0');
-    const { pipeline } = mod;
-    generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-248M', {
-      progress_callback: (p) => {
-        if (p?.totalBytes) status = `loading ${Math.round((p.currentBytes / p.totalBytes) * 100)}%`;
-      },
-    });
+  if (transformerUrls.length === 0) {
     ready = true;
-    status = 'ready';
-  } catch (e) {
-    console.warn('Transformers.js load/model init failed; using fallback template.', e);
-    status = 'fallback';
+    status = 'template';
+    return;
   }
+
+  status = 'loading';
+  for (const url of transformerUrls) {
+    try {
+      const mod = await import(url);
+      const { pipeline } = mod;
+      generator = await pipeline('text2text-generation', 'Xenova/LaMini-Flan-T5-248M', {
+        progress_callback: (p) => {
+          if (p?.totalBytes) status = `loading ${Math.round((p.currentBytes / p.totalBytes) * 100)}%`;
+        },
+      });
+      ready = true;
+      status = 'ready';
+      return;
+    } catch (e) {
+      console.warn('Transformers.js load/model init failed from', url, e);
+    }
+  }
+  status = 'template';
+  ready = true;
 }
 
 function buildPrompt({ borrower_name, missing_items, issues, due_date, language, tone }) {
@@ -77,7 +114,7 @@ export async function generateDraft(params) {
   params.issues = Array.isArray(params.issues) ? params.issues : [];
 
   if (!ready || !generator) { try { await init(); } catch {} }
-  if (!ready || !generator || status === 'fallback') return fallbackDraft(params);
+  if (!ready || !generator || status !== 'ready') return fallbackDraft(params);
 
   try {
     const out = await generator(buildPrompt(params), { max_new_tokens: 320, temperature: 0.3 });
