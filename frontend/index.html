@@ -31,18 +31,39 @@
 
       <!-- Sub header with chat -->
       <section class="subheader">
-        <div class="chat-input">
-          <div class="prefix">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
-          </div>
-          <input id="chatInput" placeholder="Ask: show me income for May · show the client’s name in all docs · find IBAN" />
-          <button class="btn primary" id="sendBtn">Search</button>
+        <div class="subheader-copy">
+          <span class="eyebrow">Mortgage Analyst AI copilot</span>
+          <h1>Stop skimming mortgage PDFs. Ask Oper Analyst instead.</h1>
+          <p>
+            Oper Analyst turns dense loan packages into a conversational workspace so you can verify income,
+            surface escrow details, and respond to underwriting questions without jumping between documents.
+          </p>
+          <div class="hero-note">Purpose-built for analysts who need fast, contextual answers from every borrower file.</div>
         </div>
-        <div class="chips" id="suggestions">
-          <button class="chip">show me income for May</button>
-          <button class="chip">show the client’s name in all docs</button>
-          <button class="chip">find IBAN</button>
-          <button class="chip">address</button>
+        <div class="chat-card">
+          <div class="assistant-banner">
+            <div class="assistant-avatar" aria-hidden="true">AI</div>
+            <div class="assistant-meta">
+              <div class="assistant-title">Ask Oper Analyst</div>
+              <div class="assistant-subtitle">Context-aware search across every uploaded document.</div>
+            </div>
+          </div>
+          <div class="chat-input">
+            <div class="prefix">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+            </div>
+            <input id="chatInput" placeholder="Ask about borrower income, escrow balances, missing docs…" />
+            <button class="btn primary" id="sendBtn">Ask AI</button>
+          </div>
+          <div class="chip-group">
+            <div class="chip-label">Popular mortgage prompts</div>
+            <div class="chips" id="suggestions">
+              <button class="chip">summarize borrower income across all paystubs</button>
+              <button class="chip">highlight escrow details in the closing package</button>
+              <button class="chip">list liabilities mentioned for Sarah Thompson</button>
+              <button class="chip">show which docs are missing signatures</button>
+            </div>
+          </div>
         </div>
       </section>
 
