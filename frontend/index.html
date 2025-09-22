@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oper Analyst — Doc Chat</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="app">
+      <!-- Top Nav -->
+      <header class="topnav">
+        <div class="brand">
+          <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" />
+            <path d="M10 17c0-3.866 3.134-7 7-7h5v5c0 3.866-3.134 7-7 7h-5v-5z" />
+          </svg>
+          <div class="brand-text">
+            <div class="title">Oper Analyst</div>
+            <div class="subtitle">Doc Chat</div>
+          </div>
+        </div>
+        <div class="top-actions">
+          <div class="kbd-hint">⌘/ to focus chat</div>
+          <button class="btn ghost" id="themeToggle" title="Toggle theme">☾</button>
+          <div class="avatar">AN</div>
+        </div>
+      </header>
+
+      <!-- Sub header with chat -->
+      <section class="subheader">
+        <div class="chat-input">
+          <div class="prefix">
+            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+          </div>
+          <input id="chatInput" placeholder="Ask: show me income for May · show the client’s name in all docs · find IBAN" />
+          <button class="btn primary" id="sendBtn">Search</button>
+        </div>
+        <div class="chips" id="suggestions">
+          <button class="chip">show me income for May</button>
+          <button class="chip">show the client’s name in all docs</button>
+          <button class="chip">find IBAN</button>
+          <button class="chip">address</button>
+        </div>
+      </section>
+
+      <!-- Content -->
+      <main class="layout">
+        <!-- Sidebar: Documents -->
+        <aside class="sidebar">
+          <div class="side-header">
+            <div class="side-title">Documents</div>
+            <button class="btn small primary" id="uploadBtn" aria-label="Upload PDFs">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 16v4h16v-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Upload</span>
+            </button>
+          </div>
+          <div class="search-inline">
+            <input id="docSearch" placeholder="Filter docs…" />
+          </div>
+          <ul id="docList" class="doc-list"></ul>
+          <div class="empty" id="emptyDocs">
+            <div class="empty-icon">📄</div>
+            <div class="empty-title">No documents yet</div>
+            <div class="empty-text">Upload PDFs to start reviewing.</div>
+          </div>
+        </aside>
+
+        <!-- Center: PDF Viewer -->
+        <section class="workspace">
+          <div class="toolbar">
+            <div class="intent" id="intentView">
+              <span class="badge">Intent</span>
+              <span class="intent-text">—</span>
+            </div>
+            <div class="spacer"></div>
+            <div class="nav">
+              <button class="btn ghost" id="prevHit" disabled>
+                <span class="icon">◀</span><span class="hide-sm">Prev</span>
+              </button>
+              <div id="hitStatus" class="muted">No matches</div>
+              <button class="btn ghost" id="nextHit" disabled>
+                <span class="hide-sm">Next</span><span class="icon">▶</span>
+              </button>
+              <button class="btn ghost" id="clearResults" title="Clear results">Clear</button>
+              <button class="btn primary" id="requestBtn" title="Request re-upload">Request re-upload</button>
+            </div>
+          </div>
+          <div id="pdfContainer" class="pdf-container">
+            <div class="placeholder">
+              <div class="ph-title">Open a document</div>
+              <div class="ph-text">Your highlights will appear directly on the page.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right drawer: Matches -->
+        <aside class="drawer">
+          <div class="drawer-header">
+            <div class="drawer-title">Matches</div>
+            <div class="drawer-sub" id="matchesMeta">—</div>
+          </div>
+          <ol class="matches" id="matchesList"></ol>
+          <div class="empty" id="emptyMatches">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">No matches</div>
+            <div class="empty-text">Ask a question to search across documents.</div>
+          </div>
+        </aside>
+      </main>
+
+      <!-- Toasts -->
+      <div class="toasts" id="toasts"></div>
+
+      <footer class="footer">
+        <span>© 2025 Oper — Analyst Tools</span>
+        <span class="muted">PoC build • Python · FastAPI · PDF.js</span>
+      </footer>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none" />
+
+    <!-- In-browser LLM (no external API) -->
+    <script type="module" src="/llm.js?v=1"></script>
+
+    <!-- PDF.js loader (tries LOCAL vendor first, then two CDNs) -->
+    <script type="module">
+      async function loadPdfJs() {
+        const urls = [
+          '/vendor/pdf.mjs',
+          'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/build/pdf.mjs',
+          'https://unpkg.com/pdfjs-dist@4.6.82/build/pdf.mjs'
+        ];
+        for (const url of urls) {
+          try {
+            const lib = await import(url);
+            if (lib.GlobalWorkerOptions) {
+              const worker = url.startsWith('/')
+                ? '/vendor/pdf.worker.min.mjs'
+                : url.replace('pdf.mjs', 'pdf.worker.min.mjs');
+              lib.GlobalWorkerOptions.workerSrc = worker;
+            }
+            window.pdfjsLib = lib;
+            return;
+          } catch (e) { console.warn('PDF.js load failed from', url); }
+        }
+        console.warn('PDF.js unavailable; using image fallback.');
+      }
+      loadPdfJs();
+    </script>
+
+    <!-- App -->
+    <script src="/app.js?v=5"></script>
+
+    <!-- Re-upload Modal -->
+    <div class="modal hidden" id="reuploadModal" aria-hidden="true">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div class="title">Request re-upload</div>
+          <div class="status" id="llmStatus">LLM: loading…</div>
+        </div>
+
+        <div class="form">
+          <div class="row">
+            <label>Borrower name</label>
+            <input id="r_name" placeholder="Jane Doe" />
+          </div>
+          <div class="row">
+            <label>Borrower email</label>
+            <input id="r_email" placeholder="jane@example.com" />
+          </div>
+          <div class="row">
+            <label>Missing items (one per line)</label>
+            <textarea id="r_missing" rows="4" placeholder="May payslip&#10;Bank statement (June, all pages)"></textarea>
+          </div>
+          <div class="row">
+            <label>Issues / corrections (optional)</label>
+            <textarea id="r_issues" rows="3" placeholder="ID photo is blurry&#10;Address differs from application"></textarea>
+          </div>
+          <div class="row two">
+            <div>
+              <label>Due date (optional)</label>
+              <input id="r_due" placeholder="YYYY-MM-DD" />
+            </div>
+            <div>
+              <label>Language</label>
+              <select id="r_lang">
+                <option value="English" selected>English</option>
+                <option>French</option><option>Dutch</option><option>German</option>
+              </select>
+            </div>
+            <div>
+              <label>Tone</label>
+              <select id="r_tone">
+                <option value="friendly" selected>friendly</option>
+                <option>formal</option><option>assertive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="draftBtn">Generate draft</button>
+          <button class="btn ghost" id="copySub">Copy subject</button>
+          <button class="btn ghost" id="copyBody">Copy body</button>
+          <button class="btn ghost" id="openMail">Open email</button>
+          <div class="spacer"></div>
+          <button class="btn ghost" id="closeModal">Close</button>
+        </div>
+
+        <div class="outputs">
+          <div class="row">
+            <label>Subject</label>
+            <input id="out_subject" readonly />
+          </div>
+          <div class="row">
+            <label>Body</label>
+            <textarea id="out_body" rows="8" readonly></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
