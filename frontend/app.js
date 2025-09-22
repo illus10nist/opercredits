@@ -213,17 +213,34 @@ function drawHighlightsForDoc(docId){
   if(!state.results) return;
   const res = state.results.find(r => r.doc_id === docId);
   if(!res) return;
-  res.highlights.forEach(h => {
+  const active = state.order?.[state.navIndex];
+  res.highlights.forEach((h, idx) => {
     const layer = document.querySelector(`.highlightLayer[data-page="${h.page}"]`);
     if(!layer) return;
+    const layerWidth = layer.clientWidth;
+    const layerHeight = layer.clientHeight;
+    const isActive = active && active.doc_id === docId && active.hit_idx === idx;
+    const classes = ['hl', isActive ? 'hl-primary' : 'hl-secondary'];
     h.rects.forEach(r => {
       const [x0,y0,x1,y1] = r;
-      const rect = ce('div', 'hl');
-      const w = layer.clientWidth, hgt = layer.clientHeight;
-      rect.style.left = (x0 * w) + 'px';
-      rect.style.top = (y0 * hgt) + 'px';
-      rect.style.width = ((x1 - x0) * w) + 'px';
-      rect.style.height = ((y1 - y0) * hgt) + 'px';
+      const rect = ce('div');
+      rect.classList.add(...classes);
+      rect.dataset.hitIdx = idx;
+      rect.dataset.page = h.page;
+      const baseWidth = (x1 - x0) * layerWidth;
+      const baseHeight = (y1 - y0) * layerHeight;
+      const padX = Math.min(12, Math.max(3, baseWidth * 0.08));
+      const padY = Math.min(10, Math.max(2, baseHeight * 0.2));
+      const left = Math.max(0, (x0 * layerWidth) - padX);
+      const top = Math.max(0, (y0 * layerHeight) - padY);
+      let width = baseWidth + padX * 2;
+      let height = baseHeight + padY * 2;
+      if(left + width > layerWidth){ width = Math.max(0, layerWidth - left); }
+      if(top + height > layerHeight){ height = Math.max(0, layerHeight - top); }
+      rect.style.left = left + 'px';
+      rect.style.top = top + 'px';
+      rect.style.width = width + 'px';
+      rect.style.height = height + 'px';
       layer.appendChild(rect);
     });
   });
