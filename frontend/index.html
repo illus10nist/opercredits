@@ -19,7 +19,7 @@
           </svg>
           <div class="brand-text">
             <div class="title">Oper Analyst</div>
-            <div class="subtitle">Doc Chat</div>
+            <div class="subtitle">Mortgage AI copilot</div>
           </div>
         </div>
         <div class="top-actions">
@@ -28,23 +28,6 @@
           <div class="avatar">AN</div>
         </div>
       </header>
-
-      <!-- Sub header with chat -->
-      <section class="subheader">
-        <div class="chat-input">
-          <div class="prefix">
-            <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
-          </div>
-          <input id="chatInput" placeholder="Ask: show me income for May · show the client’s name in all docs · find IBAN" />
-          <button class="btn primary" id="sendBtn">Search</button>
-        </div>
-        <div class="chips" id="suggestions">
-          <button class="chip">show me income for May</button>
-          <button class="chip">show the client’s name in all docs</button>
-          <button class="chip">find IBAN</button>
-          <button class="chip">address</button>
-        </div>
-      </section>
 
       <!-- Content -->
       <main class="layout">
@@ -72,35 +55,66 @@
 
         <!-- Center: PDF Viewer -->
         <section class="workspace">
-          <div class="toolbar">
-            <div class="intent" id="intentView">
-              <span class="badge">Intent</span>
-              <span class="intent-text">—</span>
+          <div class="workspace-scroll">
+            <div class="toolbar">
+              <div class="intent" id="intentView">
+                <span class="badge">Intent</span>
+                <span class="intent-text">—</span>
+              </div>
+              <div class="spacer"></div>
+              <div class="nav">
+                <button class="btn ghost" id="prevHit" disabled>
+                  <span class="icon">◀</span><span class="hide-sm">Prev</span>
+                </button>
+                <div id="hitStatus" class="muted">No matches</div>
+                <button class="btn ghost" id="nextHit" disabled>
+                  <span class="hide-sm">Next</span><span class="icon">▶</span>
+                </button>
+                <button class="btn ghost" id="clearResults" title="Clear results">Clear</button>
+                <button class="btn primary" id="requestBtn" title="Request re-upload">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                    <path d="m5.5 7 6.5 4.5L18.5 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M8 15h8m-6 3h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                  </svg>
+                  <span>Request re-upload</span>
+                </button>
+              </div>
             </div>
-            <div class="spacer"></div>
-            <div class="nav">
-              <button class="btn ghost" id="prevHit" disabled>
-                <span class="icon">◀</span><span class="hide-sm">Prev</span>
-              </button>
-              <div id="hitStatus" class="muted">No matches</div>
-              <button class="btn ghost" id="nextHit" disabled>
-                <span class="hide-sm">Next</span><span class="icon">▶</span>
-              </button>
-              <button class="btn ghost" id="clearResults" title="Clear results">Clear</button>
-              <button class="btn primary" id="requestBtn" title="Request re-upload">
-                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-                  <path d="m5.5 7 6.5 4.5L18.5 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                  <path d="M8 15h8m-6 3h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                </svg>
-                <span>Request re-upload</span>
-              </button>
+            <div id="pdfContainer" class="pdf-container">
+              <div class="placeholder">
+                <div class="ph-title">Open a document</div>
+                <div class="ph-text">Your highlights will appear directly on the page.</div>
+              </div>
             </div>
           </div>
-          <div id="pdfContainer" class="pdf-container">
-            <div class="placeholder">
-              <div class="ph-title">Open a document</div>
-              <div class="ph-text">Your highlights will appear directly on the page.</div>
+          <div class="ai-console">
+            <div class="chat-composer">
+              <div class="console-head">
+                <div class="assistant-avatar" aria-hidden="true">AI</div>
+                <div class="assistant-meta">
+                  <div class="assistant-title">Ask Oper Analyst</div>
+                  <div class="assistant-subtitle">Ask contextual questions about the document in view or reference any file you’ve uploaded.</div>
+                </div>
+              </div>
+              <div class="chip-group">
+                <div class="chip-label">Popular mortgage prompts</div>
+                <div class="chips" id="suggestions">
+                  <button class="chip">show me income for May</button>
+                  <button class="chip">show the client’s name in all docs</button>
+                  <button class="chip">find IBAN</button>
+                  <button class="chip">address</button>
+                  <button class="chip">draft a borrower summary email for underwriting</button>
+                  <button class="chip">flag inconsistencies between paystubs and the W-2</button>
+                </div>
+              </div>
+              <div class="chat-input">
+                <div class="prefix">
+                  <svg width="18" height="18" viewBox="0 0 24 24"><path d="M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></svg>
+                </div>
+                <input id="chatInput" placeholder="Ask: show me income for May · show the client’s name in all docs · find IBAN" />
+                <button class="btn primary" id="sendBtn">Ask AI</button>
+              </div>
             </div>
           </div>
         </section>
