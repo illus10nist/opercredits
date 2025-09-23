@@ -89,7 +89,8 @@ body{
 /* Main layout */
 .layout{
   display:grid; grid-template-columns: 300px 1fr 360px; gap:0;
-  min-height: calc(100vh - 180px);
+  height: calc(100vh - 96px);
+  overflow:hidden;
 }
 .sidebar{
   border-right:1px solid var(--border); background: #0b1228; padding: 14px 12px;
@@ -132,7 +133,7 @@ body{
 .empty-text{ font-size:13px; }
 
 /* Workspace & PDF viewer */
-.workspace{ display:flex; flex-direction:column; background: var(--layer); }
+.workspace{ display:flex; flex-direction:column; background: var(--layer); overflow:hidden; }
 .toolbar{
   display:flex; align-items:center; gap:12px; padding: 10px 12px; border-bottom:1px solid var(--border);
   background: linear-gradient(180deg, #0f162d, #0c1430);
@@ -144,7 +145,7 @@ body{
 .nav{ display:flex; align-items:center; gap:10px; }
 
 .pdf-container{
-  position:relative; width:100%; height: calc(100vh - 300px); overflow:auto;
+  position:relative; width:100%; flex:1; min-height:0; overflow:auto;
   background: #0b1228;
 }
 .placeholder{ text-align:center; padding: 48px 0; color:var(--muted); }
@@ -325,7 +326,7 @@ body{
   .layout{ grid-template-columns: 260px 1fr 0; }
   .drawer{ display:none; }
   .hide-sm{ display:none; }
-  .pdf-container{ height: calc(100vh - 340px); }
+  .pdf-container{ flex:1; min-height:0; }
 }
 
 /* Light theme */
